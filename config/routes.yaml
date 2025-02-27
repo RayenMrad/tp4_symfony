@@ -1,3 +1,32 @@
 homepage:
   path: /
   controller: App\Controller\IndexController::home
+
+article_save:
+  path: /article/save
+  controller: App\Controller\IndexController::save
+
+new_article:
+  path: /article/new
+  controller: App\Controller\IndexController::new
+  methods: [GET, POST]
+
+article_list:
+  path: /article/list
+  controller: App\Controller\IndexController::home
+
+article_show:
+  path: /article/{id}
+  controller: App\Controller\IndexController::show
+
+edit_article:
+  path: /article/edit/{id}
+  controller: App\Controller\IndexController::edit
+  methods: [GET, POST]
+
+delete_article:
+  path: /article/delete/{id}
+  controller: App\Controller\IndexController::delete
+  methods: [GET, POST] # Allow both GET (for confirmation) and POST (for deletion)
+  requirements:
+    id: '\d+'
