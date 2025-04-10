@@ -1,6 +1,6 @@
 <?php
 namespace App\Controller;
-
+use App\Form\ArticleType;
 use App\Entity\Article;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Doctrine\Persistence\ManagerRegistry;
+
 
 class IndexController extends AbstractController
 {
@@ -32,39 +33,36 @@ class IndexController extends AbstractController
     }
 
     #[Route('/article/new', name: 'new_article', methods: ['GET', 'POST'])]
-    public function new(Request $request): Response
+    public function new(Request $request)
     {
         // Create a new Article object
         $article = new Article();
 
-        // Create a form for the article
-        $form = $this->createFormBuilder($article)
-            ->add('nom', TextType::class)
-            ->add('prix', TextType::class)
-            ->add('save', SubmitType::class, [
-                'label' => 'Créer'
-            ])
-            ->getForm();
+        // Create the form using ArticleType
+        $form = $this->createForm(ArticleType::class, $article);
 
         // Handle the form submission
         $form->handleRequest($request);
 
         // Check if the form is submitted and valid
         if ($form->isSubmitted() && $form->isValid()) {
-            // Save the article to the database
+            // Get the article data from the form
             $article = $form->getData();
+
+            // Persist the article using the injected EntityManager
             $this->entityManager->persist($article);
             $this->entityManager->flush();
 
-            // Redirect to the article list page after saving
+            // Redirect to the article list page
             return $this->redirectToRoute('article_list');
         }
 
         // Render the form in the template
         return $this->render('articles/new.html.twig', [
-            'form' => $form->createView()
+            'form' => $form->createView(),
         ]);
     }
+
 
     #[Route('/article/save', name: 'article_save')]
     public function save(): Response
@@ -103,32 +101,20 @@ class IndexController extends AbstractController
      /**
      * @Route("/article/edit/{id}", name="edit_article", methods={"GET", "POST"})
      */
-    public function edit(ManagerRegistry $doctrine, Request $request, $id): Response
+   public function edit(Request $request, Article $article, EntityManagerInterface $entityManager): Response
     {
-        // Utilisation de ManagerRegistry pour récupérer l'entité
-        $article = $doctrine->getRepository(Article::class)->find($id);
+        $form = $this->createForm(ArticleType::class, $article);
 
-        // Vérifier si l'article existe
-        if (!$article) {
-            throw $this->createNotFoundException('Article not found');
-        }
-
-        // Création du formulaire
-        $form = $this->createFormBuilder($article)
-            ->add('nom', TextType::class)
-            ->add('prix', TextType::class)
-            ->add('save', SubmitType::class, ['label' => 'Modifier'])
-            ->getForm();
-
-        // Gestion de la soumission du formulaire
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager = $doctrine->getManager();
-            $entityManager->flush(); // Sauvegarde les modifications
+            // L'EntityManager est injecté, donc nous n'avons plus besoin de getDoctrine()
+            $entityManager->flush();
 
-            return $this->redirectToRoute('article_list'); // Redirection après modification
+            // Redirection après la sauvegarde
+            return $this->redirectToRoute('article_list');
         }
 
+        // Rendu du formulaire si non soumis ou non valide
         return $this->render('articles/edit.html.twig', [
             'form' => $form->createView(),
         ]);
